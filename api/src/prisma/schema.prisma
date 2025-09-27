@@ -1,15 +1,156 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+// This is your Prisma schema file
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum Role {
+  OWNER
+  MEMBER
+}
+
+enum TaskStatus {
+  PENDING
+  COMPLETED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+// ============================================
+// MODELS
+// ============================================
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String   // Hashed with bcrypt
+  firstName String
+  lastName  String
+  avatar    String?  // URL or file path for profile picture
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  houseMemberships HouseMember[]
+  usedInvitations  Invitation[]  @relation("InvitationUsedBy")
+
+  @@map("users")
+}
+
+model House {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  members     HouseMember[]
+  tasks       Task[]
+  categories  Category[]
+  invitations Invitation[]
+
+  @@map("houses")
+}
+
+model HouseMember {
+  id          String   @id @default(uuid())
+  displayName String   // What other members see in this house
+  role        Role
+  createdAt   DateTime @default(now())
+
+  // Foreign Keys
+  userId  String
+  houseId String
+
+  // Relations
+  user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  house              House        @relation(fields: [houseId], references: [id], onDelete: Cascade)
+  assignedTasks      Task[]       @relation("TaskAssignee")
+  createdTasks       Task[]       @relation("TaskCreator")
+  createdInvitations Invitation[]
+
+  // Constraints
+  @@unique([userId, houseId])       // User can only be member once per house
+  @@unique([displayName, houseId])  // Display name unique within house
+  @@map("house_members")
+}
+
+model Task {
+  id               String       @id @default(uuid())
+  title            String
+  description      String?
+  status           TaskStatus   @default(PENDING)
+  priority         TaskPriority @default(MEDIUM)
+  dueDate          DateTime?
+  completedAt      DateTime?    // Set manually in app code when status changes to COMPLETED
+  recurringPattern Json?        // Flexible JSON for cron-like patterns or custom rules
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  // Foreign Keys
+  houseId      String
+  categoryId   String?
+  assignedToId String?
+  createdById  String
+
+  // Relations
+  house      House        @relation(fields: [houseId], references: [id], onDelete: Cascade)
+  category   Category?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  assignedTo HouseMember? @relation("TaskAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  createdBy  HouseMember  @relation("TaskCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@map("tasks")
+}
+
+model Category {
+  id        String   @id @default(uuid())
+  name      String
+  color     String?  // Hex color for UI (e.g., "#FF5733")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Foreign Keys
+  houseId String
+
+  // Relations
+  house House  @relation(fields: [houseId], references: [id], onDelete: Cascade)
+  tasks Task[]
+
+  // Constraints
+  @@unique([name, houseId]) // Category name unique within a house
+  @@map("categories")
+}
+
+model Invitation {
+  id        String    @id @default(uuid())
+  code      String    @unique // 8-character alphanumeric code
+  expiresAt DateTime  // 7 days from creation
+  usedAt    DateTime? // Null until used
+  createdAt DateTime  @default(now())
+
+  // Foreign Keys
+  houseId     String
+  createdById String
+  usedById    String?
+
+  // Relations
+  house     House        @relation(fields: [houseId], references: [id], onDelete: Cascade)
+  createdBy HouseMember  @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  usedBy    User?        @relation("InvitationUsedBy", fields: [usedById], references: [id], onDelete: SetNull)
+
+  @@map("invitations")
 }
