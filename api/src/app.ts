@@ -1,7 +1,7 @@
 import express, { Request, Response } from "express";
 import cors from "cors";
 import authRoutes from "./modules/auth/auth.routes";
-import houseRoutes from "./modules/houses/house.routes";
+import houseRoutes from "./modules/houses/houses.routes";
 import { errorHandler } from "./shared/middleware/errorHandler";
 
 const app = express();
