@@ -1,6 +1,5 @@
 import express, { Request, Response } from "express";
 import cors from "cors";
-import "express-async-errors"; // Must be imported early to catch async errors
 import authRoutes from "./modules/auth/auth.routes";
 import { errorHandler } from "./shared/middleware/errorHandler";
 
