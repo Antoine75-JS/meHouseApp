@@ -1,6 +1,7 @@
 import express, { Request, Response } from "express";
 import cors from "cors";
 import authRoutes from "./modules/auth/auth.routes";
+import houseRoutes from "./modules/houses/house.routes";
 import { errorHandler } from "./shared/middleware/errorHandler";
 
 const app = express();
@@ -22,8 +23,9 @@ app.get("/api/v1/health", (req: Request, res: Response) => {
   });
 });
 
-// Auth routes
+// Route modules
 app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1/houses", houseRoutes);
 
 // Error handling middleware - MUST be registered AFTER all routes
 app.use(errorHandler);
