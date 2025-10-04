@@ -1,5 +1,6 @@
-import { Request, Response, NextFunction } from "express";
-import { PrismaClient, HouseMemberRole } from "@prisma/client";
+import { Response, NextFunction } from "express";
+import { PrismaClient, Role } from "@prisma/client";
+import { AuthRequest } from "./auth.middleware";
 import { ForbiddenError, NotFoundError } from "../errors/AppError";
 
 const prisma = new PrismaClient();
@@ -13,8 +14,8 @@ declare global {
         userId: string;
         houseId: string;
         displayName: string;
-        role: HouseMemberRole;
-        joinedAt: Date;
+        role: Role;
+        createdAt: Date;
       };
     }
   }
@@ -26,7 +27,7 @@ declare global {
  * Attaches house member info to req.houseMember
  */
 export const requireHouseMember = async (
-  req: Request,
+  req: AuthRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -68,9 +69,9 @@ export const requireHouseMember = async (
  * Middleware factory to check if user has required role or higher
  * Role hierarchy: OWNER > ADMIN > MEMBER
  */
-export const requireHouseRole = (requiredRole: HouseMemberRole) => {
+export const requireHouseRole = (requiredRole: Role) => {
   return async (
-    req: Request,
+    req: AuthRequest,
     res: Response,
     next: NextFunction
   ): Promise<void> => {
@@ -99,12 +100,11 @@ export const requireHouseRole = (requiredRole: HouseMemberRole) => {
  * OWNER > ADMIN > MEMBER
  */
 function hasRequiredRole(
-  userRole: HouseMemberRole,
-  requiredRole: HouseMemberRole
+  userRole: Role,
+  requiredRole: Role
 ): boolean {
   const roleHierarchy = {
-    OWNER: 3,
-    ADMIN: 2,
+    OWNER: 2,
     MEMBER: 1,
   };
 
@@ -113,5 +113,4 @@ function hasRequiredRole(
 
 // Convenience middleware exports for common role checks
 export const requireOwner = requireHouseRole("OWNER");
-export const requireAdmin = requireHouseRole("ADMIN");
 export const requireMember = requireHouseRole("MEMBER");

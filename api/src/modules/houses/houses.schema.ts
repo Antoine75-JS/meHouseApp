@@ -19,7 +19,7 @@ const displayNameSchema = z
   .trim();
 
 // House role enum validation
-const houseMemberRoleSchema = z.enum(["OWNER", "ADMIN", "MEMBER"]);
+const houseMemberRoleSchema = z.enum(["OWNER", "MEMBER"]);
 
 // Schema for creating a new house
 export const createHouseSchema = z.object({

@@ -1,8 +1,6 @@
-import { PrismaClient, HouseMemberRole } from "@prisma/client";
+import { PrismaClient, Role } from "@prisma/client";
 import {
-  ConflictError,
   NotFoundError,
-  ForbiddenError,
   UnprocessableEntityError,
 } from "../../shared/errors/AppError";
 import { CreateHouseInput, UpdateHouseInput } from "./houses.schema";
@@ -18,9 +16,6 @@ export class HouseService {
     data: CreateHouseInput,
     displayName: string
   ) {
-    // Check if display name is already taken in any house for this user
-    // (Actually, displayName is unique per house, not per user, so this check isn't needed)
-
     // Create house and add creator as OWNER in a transaction
     const result = await prisma.$transaction(async (tx) => {
       // Create the house
@@ -57,7 +52,7 @@ export class HouseService {
         house: true,
       },
       orderBy: {
-        joinedAt: "desc",
+        createdAt: "desc",
       },
     });
 
@@ -66,7 +61,7 @@ export class HouseService {
       memberInfo: {
         displayName: member.displayName,
         role: member.role,
-        joinedAt: member.joinedAt,
+        joinedAt: member.createdAt,
       },
     }));
   }
@@ -90,7 +85,7 @@ export class HouseService {
             },
           },
           orderBy: {
-            joinedAt: "asc",
+            createdAt: "asc",
           },
         },
         _count: {
@@ -174,8 +169,8 @@ export class HouseService {
         },
       },
       orderBy: [
-        { role: "desc" }, // OWNER first, then ADMIN, then MEMBER
-        { joinedAt: "asc" },
+        { role: "desc" }, // OWNER first, then MEMBER
+        { createdAt: "asc" },
       ],
     });
 
@@ -235,7 +230,7 @@ export class HouseService {
   static async updateMemberRole(
     houseId: string,
     targetUserId: string,
-    newRole: HouseMemberRole
+    newRole: Role
   ) {
     // Check if target user is a member
     const targetMember = await prisma.houseMember.findUnique({
@@ -301,9 +296,9 @@ export class HouseService {
   ) {
     const existingMember = await prisma.houseMember.findUnique({
       where: {
-        houseId_displayName: {
-          houseId,
+        displayName_houseId: {
           displayName,
+          houseId,
         },
       },
     });
