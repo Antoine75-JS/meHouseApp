@@ -3,7 +3,6 @@ import { HouseController } from "./houses.controller";
 import { authenticate } from "../../shared/middleware/auth.middleware";
 import {
   requireHouseMember,
-  requireAdmin,
   requireOwner,
 } from "../../shared/middleware/houses.middleware";
 
@@ -25,7 +24,7 @@ router.put(
   "/:id",
   authenticate,
   requireHouseMember,
-  requireAdmin,
+  requireOwner,
   HouseController.updateHouse
 );
 
@@ -49,7 +48,7 @@ router.delete(
   "/:id/members/:userId",
   authenticate,
   requireHouseMember,
-  requireAdmin,
+  requireOwner,
   HouseController.removeMember
 );
 
