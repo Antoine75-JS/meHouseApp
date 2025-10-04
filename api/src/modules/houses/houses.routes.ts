@@ -5,6 +5,7 @@ import {
   requireHouseMember,
   requireOwner,
 } from "../../shared/middleware/houses.middleware";
+import taskRoutes from "../tasks/tasks.routes";
 
 const router = Router();
 
@@ -59,5 +60,8 @@ router.put(
   requireOwner,
   HouseController.updateMemberRole
 );
+
+// Task routes (nested under houses)
+router.use("/", taskRoutes);
 
 export default router;

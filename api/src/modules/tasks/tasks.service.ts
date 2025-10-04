@@ -1,4 +1,4 @@
-import { PrismaClient, TaskStatus } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 import {
   NotFoundError,
   UnprocessableEntityError,
@@ -316,7 +316,7 @@ export class TaskService {
     const task = await this.getTaskById(taskId, houseId);
 
     // Check if user can update this task
-    const canUpdate = this.canUserModifyTask(task, currentMemberId);
+    const canUpdate = await this.canUserModifyTask(task, currentMemberId);
     if (!canUpdate) {
       throw new ForbiddenError(
         "Only task creator, assignees, or house owner can update this task"
@@ -340,7 +340,9 @@ export class TaskService {
       where: { id: taskId },
       data: {
         ...(data.title && { title: data.title }),
-        ...(data.description !== undefined && { description: data.description }),
+        ...(data.description !== undefined && {
+          description: data.description,
+        }),
         ...(data.priority && { priority: data.priority }),
         ...(data.dueDate !== undefined && {
           dueDate: data.dueDate ? new Date(data.dueDate) : null,
@@ -393,7 +395,7 @@ export class TaskService {
     const task = await this.getTaskById(taskId, houseId);
 
     // Check if user can update this task
-    const canUpdate = this.canUserModifyTask(task, currentMemberId);
+    const canUpdate = await this.canUserModifyTask(task, currentMemberId);
     if (!canUpdate) {
       throw new ForbiddenError(
         "Only task creator, assignees, or house owner can update task status"
@@ -460,7 +462,7 @@ export class TaskService {
     const task = await this.getTaskById(taskId, houseId);
 
     // Check if user can update this task
-    const canUpdate = this.canUserModifyTask(task, currentMemberId);
+    const canUpdate = await this.canUserModifyTask(task, currentMemberId);
     if (!canUpdate) {
       throw new ForbiddenError(
         "Only task creator, assignees, or house owner can update task assignees"
@@ -554,8 +556,7 @@ export class TaskService {
     });
 
     const canDelete =
-      task.createdById === currentMemberId ||
-      currentMember?.role === "OWNER";
+      task.createdById === currentMemberId || currentMember?.role === "OWNER";
 
     if (!canDelete) {
       throw new ForbiddenError(
@@ -573,7 +574,10 @@ export class TaskService {
   /**
    * Helper method to check if user can modify a task
    */
-  private static canUserModifyTask(task: any, currentMemberId: string): boolean {
+  private static async canUserModifyTask(
+    task: any,
+    currentMemberId: string
+  ): Promise<boolean> {
     // Task creator can always modify
     if (task.createdById === currentMemberId) {
       return true;
@@ -587,7 +591,15 @@ export class TaskService {
       return true;
     }
 
-    // House owner can modify (this would need to be checked at controller level)
+    // House owner can modify
+    const currentMember = await prisma.houseMember.findUnique({
+      where: { id: currentMemberId },
+    });
+
+    if (currentMember?.role === "OWNER") {
+      return true;
+    }
+
     return false;
   }
 }
