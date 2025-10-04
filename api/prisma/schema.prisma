@@ -77,10 +77,10 @@ model HouseMember {
   houseId String
 
   // Relations
-  user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  house              House        @relation(fields: [houseId], references: [id], onDelete: Cascade)
-  assignedTasks      Task[]       @relation("TaskAssignee")
-  createdTasks       Task[]       @relation("TaskCreator")
+  user               User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  house              House            @relation(fields: [houseId], references: [id], onDelete: Cascade)
+  assignedTasks      TaskAssignee[]
+  createdTasks       Task[]           @relation("TaskCreator")
   createdInvitations Invitation[]
 
   // Constraints
@@ -102,18 +102,34 @@ model Task {
   updatedAt        DateTime     @updatedAt
 
   // Foreign Keys
-  houseId      String
-  categoryId   String?
-  assignedToId String?
-  createdById  String
+  houseId     String
+  categoryId  String?
+  createdById String
 
   // Relations
-  house      House        @relation(fields: [houseId], references: [id], onDelete: Cascade)
-  category   Category?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  assignedTo HouseMember? @relation("TaskAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
-  createdBy  HouseMember  @relation("TaskCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  house     House          @relation(fields: [houseId], references: [id], onDelete: Cascade)
+  category  Category?      @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  assignees TaskAssignee[]
+  createdBy HouseMember    @relation("TaskCreator", fields: [createdById], references: [id], onDelete: SetNull)
 
   @@map("tasks")
+}
+
+model TaskAssignee {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  // Foreign Keys
+  taskId       String
+  houseMemberId String
+
+  // Relations
+  task        Task        @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  houseMember HouseMember @relation(fields: [houseMemberId], references: [id], onDelete: Cascade)
+
+  // Constraints
+  @@unique([taskId, houseMemberId]) // One assignment per task-member pair
+  @@map("task_assignees")
 }
 
 model Category {
